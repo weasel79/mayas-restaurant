@@ -814,7 +814,12 @@ Continue|Weiterspielen|Continuer|Continuar|继续游戏
 Saved: {d}|Gespeichert: {d}|Sauvegardé : {d}|Guardado: {d}|已保存：{d}
 Swipe down through each dotted line to chop.|Wisch durch jede gestrichelte Linie nach unten, um zu schneiden.|Glisse vers le bas à travers chaque ligne en pointillés pour couper.|Desliza hacia abajo por cada línea punteada para cortar.|沿每条虚线向下滑动来切。
 Swipe the knife straight through each dotted line. Misses cost points.|Zieh das Messer gerade durch jede gestrichelte Linie. Daneben kostet Punkte.|Passe le couteau bien droit à travers chaque ligne en pointillés. Les ratés coûtent des points.|Pasa el cuchillo recto por cada línea punteada. Fallar resta puntos.|用刀笔直划过每条虚线，划偏会扣分。
-Swipe!|Wischen!|Glisse !|¡Desliza!|滑动！`.split('\n').forEach(l=>{const p=l.split('|');I18N[p[0]]={de:p[1],fr:p[2],es:p[3],zh:p[4]}});
+Swipe!|Wischen!|Glisse !|¡Desliza!|滑动！
+Paint right up to the crust: 98% has to be covered.|Mal bis an den Rand: 98% müssen bedeckt sein.|Peins jusqu'à la croûte : 98 % doivent être couverts.|Pinta hasta el borde: hay que cubrir el 98%.|涂到饼边：需覆盖 98%。
+On the crust!|Auf dem Rand!|Sur la croûte !|¡En el borde!|涂到饼边上了！
+Drag each topping onto its circle. The closer to the middle, the more points.|Zieh jeden Belag auf seinen Kreis. Je näher an der Mitte, desto mehr Punkte.|Glisse chaque garniture sur son cercle. Plus c'est près du centre, plus tu gagnes de points.|Arrastra cada ingrediente a su círculo. Cuanto más cerca del centro, más puntos.|把每样配料拖到对应圆圈，越靠近中心分越高。
+Close|Knapp|Presque|Casi|差一点
+Way off|Weit daneben|Loin|Muy lejos|偏太多了`.split('\n').forEach(l=>{const p=l.split('|');I18N[p[0]]={de:p[1],fr:p[2],es:p[3],zh:p[4]}});
 let LANG='de',LANG_SET=false;try{const l=localStorage.getItem('pip-lang');if(l){LANG=l;LANG_SET=true}}catch(e){}
 function tr(k,v){let o=LANG!=='en'&&I18N[k]&&I18N[k][LANG]||k;if(v)for(const n in v)o=o.split('{'+n+'}').join(v[n]);return o}
 
@@ -1345,13 +1350,15 @@ G.toppings=(s,d)=>{
   const types=free?s.types:[...new Set(spots.map(p=>p.t))],tray=types.map((t,i)=>({t,x:200+(i-(types.length-1)/2)*92,y:428}));
   const rad=26*d.tol,placed=[],dbtn={x:286,y:12,w:104,h:40},need=d.id==='little'?1:3;let drag=null,miss=0;
   const keep=list=>{E.lastTops=list.map(o=>({t:o.t,x:(o.x-200)/132,y:(o.y-215)/132}))};
-  return{title:s.t,hint:free?tr('Place toppings anywhere on the pizza, then press Done.'):d.id==='little'?tr('Drag toppings onto the circles.'):tr('Drag each topping onto a circle of the same color. Aim for the middle.'),
+  return{title:s.t,hint:free?tr('Place toppings anywhere on the pizza, then press Done.'):d.id==='little'?tr('Drag toppings onto the circles.'):tr('Drag each topping onto its circle. The closer to the middle, the more points.'),
     time:spots.length*3+6,done:false,score:0,
     down(x,y){if(this.done)return;for(const o of tray)if(Math.hypot(x-o.x,y-o.y)<42){drag={t:o.t,x,y:y-30};sfx.pop();return}if(free&&placed.length>=need&&inBtn(dbtn,x,y)){sfx.good();this.finish()}},
     move(x,y){if(drag){drag.x=x;drag.y=y-30}},
-    up(){if(!drag)return;if(free){if(Math.hypot(drag.x-200,drag.y-215)<=124){placed.push({t:drag.t,x:drag.x,y:drag.y,r:Math.random()*.6-.3});sfx.squish()}else{sfx.thud();if(d.id!=='little'){miss++;FX.pop('Off the pizza',drag.x,drag.y-24,'#EF4F3A')}}drag=null;return}let best=null,bd=1e9;for(const p of spots)if(!p.f&&(d.id==='little'||p.t===drag.t)){const dd=Math.hypot(p.x-drag.x,p.y-drag.y);if(dd<bd){bd=dd;best=p}}
-      if(best&&bd<=rad*1.6){best.f=true;best.ft=drag.t;best.acc=bd<=6?1:clamp(1-(bd-6)/(rad*1.6)*.5,.5,1);if(d.id==='head'){best.dx=drag.x;best.dy=drag.y}sfx.good();FX.pop(best.acc>=.95?'Perfect':'Nice',best.x,best.y-30,'#2F8F5B')}
-      else{sfx.thud();if(d.id!=='little'){miss++;FX.pop('Miss',drag.x,drag.y-24,'#EF4F3A')}}
+    up(){if(!drag)return;if(free){if(Math.hypot(drag.x-200,drag.y-215)<=124){placed.push({t:drag.t,x:drag.x,y:drag.y,r:Math.random()*.6-.3});sfx.squish()}else{sfx.thud();if(d.id!=='little'){miss++;FX.pop('Off the pizza',drag.x,drag.y-24,'#EF4F3A')}}drag=null;return}const onFood=Math.hypot(drag.x-200,drag.y-215)<=(s.base==='pizza'?128:140);
+      if(!onFood){sfx.thud();if(d.id!=='little'){miss++;FX.pop('Miss',drag.x,drag.y-24,'#EF4F3A')}drag=null;return}
+      let best=null,bd=1e9;for(const p of spots)if(!p.f&&(d.id==='little'||p.t===drag.t)){const dd=Math.hypot(p.x-drag.x,p.y-drag.y);if(dd<bd){bd=dd;best=p}}
+      if(best){const tol=d.id==='little'?60:d.id==='home'?42:30;best.f=true;best.ft=drag.t;best.dx=drag.x;best.dy=drag.y;best.acc=bd<=5?1:clamp(1-(bd-5)/tol,0,1);
+        const q=best.acc;q>=.6?sfx.good():sfx.squish();FX.pop(q>=.9?'Perfect':q>=.6?'Nice':q>=.25?'Close':'Way off',drag.x,drag.y-30,q>=.6?'#2F8F5B':q>=.25?INK:'#EF4F3A')}
       drag=null;if(spots.every(p=>p.f))this.finish()},
     finish(){this.done=true;if(free){keep(placed);this.score=Math.round(clamp(50+Math.min(placed.length,10)*5-miss*5,20,100));return}keep(spots.filter(p=>p.f).map(p=>({t:p.ft,x:p.dx,y:p.dy})));const a=spots.reduce((t,p)=>t+(p.f?p.acc:0),0)/spots.length;this.score=Math.round(clamp(a*100-miss*6,0,100))},
     timeout(){this.finish()},update(){},
@@ -1505,29 +1512,34 @@ G.slice=(s,d)=>{
 };
 
 /* PAINT: brush the sauce over the dough with a ladle */
-G.paint=(s,d)=>{const cx=200,cy=258,R=134,inner=R-16,N=10,cell=inner*2/N,cells=[],hit=new Set(),need=d.id==='little'?.78:d.id==='home'?.88:.93,brush=d.id==='little'?30:d.id==='home'?25:21;
-  for(let i=0;i<N;i++)for(let j=0;j<N;j++){const x=cx-inner+cell*(i+.5),y=cy-inner+cell*(j+.5);if(Math.hypot(x-cx,y-cy)<inner-cell*.3)cells.push([x,y,i*N+j])}
+G.paint=(s,d)=>{
+  /* the dough art is slightly oval; the sauce border is the inner edge of its crust (93% wide, 89% tall) */
+  const cx=200,cy=258,DW=292,DH=Math.round(DW*305/320),RX=DW/2*313/320,RY=DH/2*298/305,EX=RX*.93,EY=RY*.89;
+  const need=d.id==='little'?.9:.98,brush=d.id==='little'?30:d.id==='home'?24:20;
+  const inside=(x,y,ex,ey)=>((x-cx)/ex)**2+((y-cy)/ey)**2<=1;
+  const pts=[],ring=[];for(let y=cy-RY;y<=cy+RY;y+=5)for(let x=cx-RX;x<=cx+RX;x+=5){if(inside(x,y,EX,EY))pts.push([x,y]);else if(inside(x,y,RX,RY))ring.push([x,y])}
   const mask=document.createElement('canvas'),tint=document.createElement('canvas');mask.width=tint.width=W*2;mask.height=tint.height=H*2;const mg=mask.getContext('2d'),tg=tint.getContext('2d');mg.scale(2,2);
-  let dn=false,lx=0,ly=0,spill=0,cd=0,fin=-1,px=null,py=null,dist=0,dirty=true;
-  const cov=()=>hit.size/cells.length;
+  let dn=false,lx=0,ly=0,spill=0,cd=0,fin=-1,px=null,py=null,dist=0,dirty=true,cov=0,crust=0,chk=0;
+  const measure=()=>{let id;try{id=mg.getImageData(0,0,mask.width,mask.height).data}catch(e){return}if(!id)return;const at=(x,y)=>id[((Math.round(y*2))*mask.width+Math.round(x*2))*4+3]>40;
+    let c=0;for(const [x,y] of pts)if(at(x,y))c++;cov=c/pts.length;let r=0;for(const [x,y] of ring)if(at(x,y))r++;crust=r/ring.length};
   const seg=(x0,y0,x1,y1)=>{mg.strokeStyle='#000';mg.lineWidth=brush*2;mg.lineCap='round';mg.beginPath();mg.moveTo(x0,y0);mg.lineTo(x1,y1);mg.stroke();dirty=true;
-    const L=Math.hypot(x1-x0,y1-y0),n=Math.max(1,Math.ceil(L/6));for(let t=0;t<=n;t++){const x=x0+(x1-x0)*t/n,y=y0+(y1-y0)*t/n;for(const c of cells)if(!hit.has(c[2])&&Math.hypot(c[0]-x,c[1]-y)<brush+cell*.25)hit.add(c[2])}
-    if(d.id!=='little'&&Math.hypot(x1-cx,y1-cy)>R+2&&cd<=0){spill++;cd=.7;FX.pop('Off the dough',x1,y1-24,'#EF4F3A');sfx.bad()}};
-  return{title:s.t,hint:d.id==='little'?tr('Paint the dough all over with the ladle.'):tr('Paint the sauce all over the dough, but keep the edge free.'),time:14,done:false,score:0,
+    if(d.id!=='little'&&cd<=0){if(!inside(x1,y1,RX+4,RY+4)){spill++;cd=.8;FX.pop('Off the dough',x1,y1-24,'#EF4F3A');sfx.bad()}else if(!inside(x1,y1,EX+brush*.35,EY+brush*.35)){cd=.8;FX.pop('On the crust!',x1,y1-24,'#EF4F3A')}}};
+  return{title:s.t,hint:d.id==='little'?tr('Paint the dough all over with the ladle.'):tr('Paint right up to the crust: 98% has to be covered.'),time:16,done:false,score:0,
     down(x,y){if(this.done||fin>=0)return;dn=true;lx=x;ly=y;px=x;py=y;seg(x,y,x,y);sfx.slosh()},
-    move(x,y){px=x;py=y;if(!dn||this.done||fin>=0)return;seg(lx,ly,x,y);dist+=Math.hypot(x-lx,y-ly);lx=x;ly=y;if(dist>70){dist=0;sfx.slosh()}if(cov()>=need){fin=0;FX.pop(spill?'Good':'Perfect',200,60,'#2F8F5B')}},
-    up(){dn=false;px=null},
-    update(dt){cd-=dt;if(fin>=0&&!this.done){fin+=dt;if(fin>.5)this.finish()}},
-    finish(){this.done=true;this.score=Math.round(clamp(Math.min(1,cov()/need)*100-spill*10,10,100))},
+    move(x,y){px=x;py=y;if(!dn||this.done||fin>=0)return;seg(lx,ly,x,y);dist+=Math.hypot(x-lx,y-ly);lx=x;ly=y;if(dist>70){dist=0;sfx.slosh()}},
+    up(){dn=false;px=null;measure();if(cov>=need&&fin<0){fin=0;FX.pop(crust>.12?'Good':'Perfect',200,60,'#2F8F5B')}},
+    update(dt){cd-=dt;chk-=dt;if(dn&&chk<=0){chk=.12;measure();if(cov>=need&&fin<0){fin=0;FX.pop(crust>.12?'Good':'Perfect',200,60,'#2F8F5B')}}if(fin>=0&&!this.done){fin+=dt;if(fin>.5)this.finish()}},
+    finish(){this.done=true;measure();this.score=Math.round(clamp(Math.min(1,cov/need)*100-Math.max(0,crust-.05)*120-spill*10,10,100))},
     timeout(){this.finish()},
-    draw(g){const dB=spr('dough-base');if(dB)drawSpr(g,dB,cx-R-12,cy-R-12,R*2+24,R*2+24);else{ell(g,cx,cy,R+10,R+10);fs(g,'#E8B76A');ell(g,cx,cy,R-8,R-8);fs(g,'#F6DFAE',2)}
-      g.setLineDash([8,8]);ell(g,cx,cy,inner,inner);g.lineWidth=2.5;g.strokeStyle='rgba(59,34,24,.35)';g.stroke();g.setLineDash([]);
+    draw(g){const dB=spr('dough-base');if(dB)drawSpr(g,dB,cx-DW/2,cy-DH/2,DW,DH);else{g.beginPath();g.ellipse(cx,cy,RX,RY,0,0,Math.PI*2);fs(g,'#E8B76A');g.beginPath();g.ellipse(cx,cy,EX,EY,0,0,Math.PI*2);fs(g,'#F6DFAE',2)}
+      g.setLineDash([8,8]);g.beginPath();g.ellipse(cx,cy,EX,EY,0,0,Math.PI*2);g.lineWidth=2.5;g.strokeStyle='rgba(59,34,24,.45)';g.stroke();g.setLineDash([]);
       if(dirty){tg.globalCompositeOperation='source-over';tg.clearRect(0,0,tint.width,tint.height);tg.drawImage(mask,0,0);tg.globalCompositeOperation='source-in';tg.fillStyle=s.base;tg.fillRect(0,0,tint.width,tint.height);
-        tg.globalCompositeOperation='source-atop';tg.fillStyle='rgba(255,255,255,.18)';for(let i=0;i<40;i++){tg.beginPath();tg.ellipse((cx+Math.cos(i*2.4)*inner*Math.sqrt(i/40))*2,(cy+Math.sin(i*2.4)*inner*Math.sqrt(i/40))*2,10,5,i,0,Math.PI*2);tg.fill()}dirty=false}
-      g.save();ell(g,cx,cy,R+2,R+2);g.clip();g.drawImage(tint,0,0,W,H);g.restore();
-      g.lineCap='round';g.beginPath();g.arc(cx,cy,R+28,0,Math.PI*2);g.lineWidth=10;g.strokeStyle='rgba(59,34,24,.12)';g.stroke();const p=Math.min(1,cov()/need);if(p>0){g.beginPath();g.arc(cx,cy,R+28,-Math.PI/2,-Math.PI/2+Math.PI*2*p);g.strokeStyle='#FFC93C';g.stroke()}g.lineCap='butt';
+        tg.globalCompositeOperation='source-atop';tg.fillStyle='rgba(255,255,255,.18)';for(let i=0;i<40;i++){tg.beginPath();tg.ellipse((cx+Math.cos(i*2.4)*EX*Math.sqrt(i/40))*2,(cy+Math.sin(i*2.4)*EY*Math.sqrt(i/40))*2,10,5,i,0,Math.PI*2);tg.fill()}dirty=false}
+      g.save();g.beginPath();g.ellipse(cx,cy,RX+2,RY+2,0,0,Math.PI*2);g.clip();g.drawImage(tint,0,0,W,H);g.restore();
+      const p=Math.min(1,cov/need);g.lineCap='round';g.beginPath();g.ellipse(cx,cy,RX+22,RY+22,0,0,Math.PI*2);g.lineWidth=10;g.strokeStyle='rgba(59,34,24,.12)';g.stroke();if(p>0){g.beginPath();g.ellipse(cx,cy,RX+22,RY+22,0,-Math.PI/2,-Math.PI/2+Math.PI*2*p);g.strokeStyle=cov>=need?'#2F8F5B':'#FFC93C';g.stroke()}g.lineCap='butt';
+      text(g,Math.floor(cov*100)+'%',200,34,22,cov>=need?'#2F8F5B':INK,'center','d');
       const ld=spr('tool-ladle');if(px!==null){if(ld){const lw=128,lh=lw*ld.height/ld.width;drawSpr(g,ld,px-lw*.2,py-lh*.8,lw,lh)}else{ell(g,px,py,18,18);fs(g,'#DCE4EC')}}
-      else if(cov()===0){const a=T*2;g.globalAlpha=.55;if(ld){const lw=128,lh=lw*ld.height/ld.width;drawSpr(g,ld,cx+Math.cos(a)*60-lw*.2,cy+Math.sin(a)*60-lh*.8,lw,lh)}g.globalAlpha=1}}};
+      else if(cov===0){const a=T*2;g.globalAlpha=.55;if(ld){const lw=128,lh=lw*ld.height/ld.width;drawSpr(g,ld,cx+Math.cos(a)*60-lw*.2,cy+Math.sin(a)*60-lh*.8,lw,lh)}g.globalAlpha=1}}};
 };
 /* GRATE: rub the cheese block over the box grater */
 G.grate=(s,d)=>{const gx=200,auto=d.id!=='head',btn=auto?null:{x:130,y:432,w:140,h:40};let prog=0,dn=false,ly=0,by=210,fin=-1,fing=0,last=0;const shreds=[];
