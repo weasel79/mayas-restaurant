@@ -1187,6 +1187,12 @@ G.heat=(s,d)=>{
         const pa=spr(s.fast?'td-wok':'td-pan');if(pa){const k=256/pa.height;drawSpr(g,pa,200-128,172,pa.width*k,256)}else{rrect(g,312,288,86,26,12);fs(g,'#2B3352');ell(g,200,300,128,128);fs(g,'#4A5577');ell(g,200,300,112,112);fs(g,'#2B3352',0)}
         if(s.item==='pancake'){const off=-Math.sin(fp*Math.PI)*90,sy=Math.max(.08,Math.abs(Math.cos(fp*Math.PI)));g.save();g.translate(200,300+off);g.scale(1,sy);const shown=flipping&&fa>.3&&side+1<sides?0:ck;if(!(s.art&&drawStage3(g,'stage-'+s.art,-88,-84,176,168,shown))){ell(g,0,0,80,80);fs(g,c)}
           if(!flipping){g.fillStyle='rgba(255,255,255,.55)';for(const b of bub)if(b.t<ck){ell(g,b.x*.9,b.y*.9,3.5,3.5);g.fill()}}g.restore()}
+        else if(s.item==='eggs'){const j=flipping?-Math.sin(fp*Math.PI)*16:0,stir=T*.6;g.save();g.translate(200,300+j);
+          for(let i=0;i<30;i++){const a=i*2.39996+(i%3)*stir*.08,r=88*Math.sqrt((i+.6)/30),x=Math.cos(a)*r,y=Math.sin(a)*r,w=26+(i*37%13),h=20+(i*53%11);
+            g.beginPath();for(let k=0;k<=24;k++){const t=k/24*Math.PI*2,rr=1+.1*Math.sin(t*3+i)+.06*Math.sin(t*5+i*2);g.lineTo(x+Math.cos(t)*w*.85*rr,y+Math.sin(t)*h*.85*rr)}g.closePath();g.lineJoin='round';
+            g.fillStyle=c;g.fill();if(i%4===0){g.fillStyle='rgba(255,255,255,.3)';g.fill()}g.lineWidth=2;g.strokeStyle='rgba(59,34,24,.28)';g.stroke()}
+          if(ck>.3){g.fillStyle=`rgba(200,130,30,${Math.min(.35,(ck-.3)*.5)})`;for(let i=0;i<14;i++){const a=i*1.7,r=70*Math.sqrt((i+.5)/14);ell(g,Math.cos(a)*r,Math.sin(a)*r,6,4,a);g.fill()}}
+          g.restore()}
         else if(s.item==='sausage'&&spr('stage-sausage-0')){const im=spr('stage-sausage-0'),w=250,h=w*im.height/im.width,j=flipping?-Math.sin(fp*Math.PI)*60:0;g.save();g.translate(200,300+j);g.rotate(flipping?fp*Math.PI*2:0);drawStage3(g,'stage-sausage',-w/2,-h/2,w,h,ck);g.restore()}
         else if(s.item==='sausage'){[-48,0,48].forEach((dy,i)=>{const j=flipping?-Math.sin(fp*Math.PI)*(40+i*15):0;g.save();g.translate(200,300+dy+j);g.rotate(.15*(i-1)+(flipping?fp*Math.PI:0));rrect(g,-70,-15,140,30,15);fs(g,c);g.strokeStyle='rgba(59,34,24,.35)';g.lineWidth=2.5;[-30,0,30].forEach(x=>{g.beginPath();g.moveTo(x-6,-8);g.lineTo(x+6,8);g.stroke()});g.restore()})}
         else for(const b of bits){const j=flipping?-Math.sin(fp*Math.PI)*b.j:0;g.save();g.translate(b.x,b.y+j);g.rotate(b.r+fp*6);rrect(g,-b.w/2,-6,b.w,12,5);fs(g,b.green?mix('#4DA35F','#2C4A22',clamp(ck-.3,0,1)):c,2);g.restore()}
@@ -1259,16 +1265,19 @@ G.roll=(s,d)=>{
 /* SEASON: shake the right number of times */
 G.season=(s,d)=>{
   const px=200,py=300,R=110,btn=d.id==='little'?null:{x:130,y:422,w:140,h:42};
-  let n=0,sh=0,fin=-1;const drops=[],landed=[];
+  let n=0,sh=0,fin=-1,sprN=Math.floor(Math.random()*40);const drops=[],landed=[];
   const tool=s.tool||(/spoonful/i.test(s.t)?'spoon':s.liquid?'bottle':/(cheese|parmesan|handful|coconut)/i.test(s.t)?'bowl':'shaker'),chunk=tool==='bowl';
   return{title:s.t,hint:d.id==='little'?tr(tool==='shaker'?'Tap to shake!':'Tap to add!'):d.id==='home'?tr(tool==='shaker'?'Tap to shake, then press Done.':'Tap to add, then press Done.'):tr('Count your shakes yourself, then press Done. There is no counter at this level.'),
     time:s.n*2+8,done:false,score:0,
     down(x,y){if(this.done||fin>=0)return;if(inBtn(btn,x,y)){fin=0;sfx.pop();return}
       n++;sh=.28;s.liquid?sfx.slosh():tool==='shaker'?sfx.shake():sfx.roll();
-      const k=s.liquid?1:chunk?7:tool==='spoon'?6:9;for(let j=0;j<k;j++)drops.push({x:px+(Math.random()-.5)*(s.liquid?4:34)+(tool==='bowl'?14:tool==='spoon'?18:0),y:135,vx:(Math.random()-.5)*(s.liquid?40:120),vy:60+Math.random()*80,ty:py+(Math.random()-.5)*R*1.1,a:Math.random()*3});
+      if(s.liquid)drops.push({x:px+(Math.random()-.5)*4,y:135,vx:(Math.random()-.5)*40,vy:60+Math.random()*80,ty:py+(Math.random()-.5)*R*1.1,a:Math.random()*3});
+      else{const k=chunk?12:tool==='spoon'?12:16,fx=px+(tool==='bowl'?14:tool==='spoon'?18:0);
+        for(let j=0;j<k;j++){const idx=sprN++,r=R*.74*Math.sqrt(((idx*.7548776662+.5)%1)*.97+.02),a=((idx*.5698402910+.5)%1)*Math.PI*2;
+          drops.push({fx:fx+(Math.random()-.5)*20,fy:135,tx:px+Math.cos(a)*r+(Math.random()-.5)*8,ty:py+Math.sin(a)*r+(Math.random()-.5)*8,t:-j*.012,dur:.28+Math.random()*.14,a:Math.random()*3})}}
       if(d.id==='little'&&n>=s.n)fin=0},
     move(){},up(){},
-    update(dt){sh=Math.max(0,sh-dt);for(const p of drops){p.vy+=900*dt;p.x+=p.vx*dt;p.y+=p.vy*dt;if(p.y>=p.ty){p.dead=1;landed.push({x:p.x,y:p.ty,a:p.a,r:s.liquid?7+Math.random()*4:chunk?3.4+Math.random()*2:2+Math.random()*1.6})}}
+    update(dt){sh=Math.max(0,sh-dt);for(const p of drops){if(p.tx!==undefined){p.t+=dt/p.dur;const t=clamp(p.t,0,1);p.x=lerp(p.fx,p.tx,t);p.y=lerp(p.fy,p.ty,t)-Math.sin(t*Math.PI)*18;if(p.t<1)continue;p.x=p.tx;p.y=p.ty}else{p.vy+=900*dt;p.x+=p.vx*dt;p.y+=p.vy*dt}if(p.y>=p.ty-.01){p.dead=1;landed.push({x:p.x,y:p.ty,a:p.a,r:s.liquid?7+Math.random()*4:chunk?3.4+Math.random()*2:2+Math.random()*1.6})}}
       for(let i=drops.length-1;i>=0;i--)if(drops[i].dead)drops.splice(i,1);
       if(fin>=0&&!this.done){fin+=dt;if(fin>.7)this.finish()}},
     finish(){this.done=true;this.score=Math.round(clamp(100-Math.abs(n-s.n)*25,0,100))},
@@ -1653,7 +1662,7 @@ const RECIPES=[
   {id:'scramble',name:'Scrambled Eggs',unlock:1,dish:{v:'plate',s:'mound',c:'#FFD84D',b:['#7CC576']},steps:[
     {g:'crack',n:3,t:'Crack 3 eggs'},
     {g:'stir',turns:3,whisk:true,colors:['#FFB51E','#FFFDF5'],base:'#FFD84D',t:'Whisk the eggs'},
-    {g:'heat',mode:'pan',item:'bits',raw:'#FFE58A',gold:'#FFC93C',burnt:'#7A5326',t:'Scramble until just set'},
+    {g:'heat',mode:'pan',item:'eggs',raw:'#FFF3B0',gold:'#FFD447',burnt:'#7A5326',t:'Scramble until just set'},
     {g:'season',n:2,color:'#FFFFFF',food:'#FFD84D',t:'Salt: 2 shakes'},
     {g:'chop',item:'scallion',cuts:5,t:'Snip chives on top',pro:true}]},
   {id:'lemonade',name:'Fresh Lemonade',unlock:1,dish:{v:'glass',c:'#FFF08A',b:['#FFD93D']},steps:[
