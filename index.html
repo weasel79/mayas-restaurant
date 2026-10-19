@@ -811,7 +811,10 @@ Back to start|Zum Startbildschirm|Retour à l'accueil|Volver al inicio|返回开
 ‹ Start|‹ Start|‹ Accueil|‹ Inicio|‹ 开始
 Progress is saved automatically.|Der Fortschritt wird automatisch gespeichert.|La progression est sauvegardée automatiquement.|El progreso se guarda automáticamente.|进度会自动保存。
 Continue|Weiterspielen|Continuer|Continuar|继续游戏
-Saved: {d}|Gespeichert: {d}|Sauvegardé : {d}|Guardado: {d}|已保存：{d}`.split('\n').forEach(l=>{const p=l.split('|');I18N[p[0]]={de:p[1],fr:p[2],es:p[3],zh:p[4]}});
+Saved: {d}|Gespeichert: {d}|Sauvegardé : {d}|Guardado: {d}|已保存：{d}
+Swipe down through each dotted line to chop.|Wisch durch jede gestrichelte Linie nach unten, um zu schneiden.|Glisse vers le bas à travers chaque ligne en pointillés pour couper.|Desliza hacia abajo por cada línea punteada para cortar.|沿每条虚线向下滑动来切。
+Swipe the knife straight through each dotted line. Misses cost points.|Zieh das Messer gerade durch jede gestrichelte Linie. Daneben kostet Punkte.|Passe le couteau bien droit à travers chaque ligne en pointillés. Les ratés coûtent des points.|Pasa el cuchillo recto por cada línea punteada. Fallar resta puntos.|用刀笔直划过每条虚线，划偏会扣分。
+Swipe!|Wischen!|Glisse !|¡Desliza!|滑动！`.split('\n').forEach(l=>{const p=l.split('|');I18N[p[0]]={de:p[1],fr:p[2],es:p[3],zh:p[4]}});
 let LANG='de',LANG_SET=false;try{const l=localStorage.getItem('pip-lang');if(l){LANG=l;LANG_SET=true}}catch(e){}
 function tr(k,v){let o=LANG!=='en'&&I18N[k]&&I18N[k][LANG]||k;if(v)for(const n in v)o=o.split('{'+n+'}').join(v[n]);return o}
 
@@ -1002,20 +1005,25 @@ const G={};
 G.chop=(s,d)=>{
   const it=ITEMS[s.item],cy=250,geo=itemGeo(it),hh=geo.hh,x0=geo.x0,x1=geo.x1,mx0=geo.sp?x0+(x1-x0)*.08:x0,mx1=geo.sp?x1-(x1-x0)*.08:x1;
   const marks=[];for(let i=1;i<=s.cuts;i++)marks.push({x:mx0+(mx1-mx0)*i/(s.cuts+1),cut:false,acc:0,at:0});
-  const kn={x:200,t:0},reach=22*d.tol,perfect=Math.max(3,5*d.tol);let misses=0;
-  return{title:s.t,hint:d.id==='little'?tr('Tap each dotted line to chop.'):tr('Tap right on each dotted line. Misses cost points.'),
+  const kn={x:200,t:0,y:null},reach=22*d.tol,perfect=Math.max(3,5*d.tol),need=d.id==='little'?hh*.8+18:hh*1.6+24;let misses=0,sw=null,hint=0;
+  return{title:s.t,hint:d.id==='little'?tr('Swipe down through each dotted line to chop.'):tr('Swipe the knife straight through each dotted line. Misses cost points.'),
     time:4+s.cuts*1.5,done:false,score:0,
-    down(x,y){if(this.done)return;kn.x=x;kn.t=.2;
-      if(y<cy-hh-100||y>cy+hh+80)return;
+    /* chop by swiping the knife through a dotted line (down or up); a plain tap does nothing */
+    down(x,y){if(this.done)return;sw={x0:x,y0:y,xs:[x],used:false};kn.x=x;kn.y=y},
+    move(x,y){if(!sw){if(kn.t<=0)kn.x=x;return}kn.x=x;kn.y=y;sw.xs.push(x);if(sw.used||this.done)return;
+      const dy=Math.abs(y-sw.y0),dx=Math.abs(x-sw.x0);if(dy<need)return;
+      if(dx>dy*.7){sw.used=true;if(d.id!=='little'){misses++;FX.pop('Wobbly',x,cy-hh-30,'#EF4F3A');sfx.bad()}return}
+      sw.used=true;this.cutAt(sw.xs.reduce((a,b)=>a+b,0)/sw.xs.length)},
+    up(x,y){if(sw&&!sw.used&&!this.done&&Math.abs((y??sw.y0)-sw.y0)<12){hint=1.2;FX.pop('Swipe!',sw.x0,cy-hh-30,INK)}sw=null;kn.y=null},
+    cutAt(x){kn.x=x;kn.t=.2;
       let best=null,bd=1e9;for(const m of marks)if(!m.cut){const dd=Math.abs(m.x-x);if(dd<bd){bd=dd;best=m}}
-      if(best&&bd<=reach){best.cut=true;best.at=x;best.t=0;best.acc=bd<=perfect?1:clamp(1-(bd-perfect)/(reach-perfect)*.55,.45,1);
-        sfx.chop();FX.burst(x,cy,it.juice,7);FX.pop(best.acc>=1?'Perfect':best.acc>.8?'Good':'OK',x,cy-hh-30,best.acc>=1?'#2F8F5B':INK);
+      if(best&&bd<=reach){best.cut=true;best.at=best.x+(x-best.x)*.5;best.t=0;best.acc=bd<=perfect?1:clamp(1-(bd-perfect)/(reach-perfect)*.55,.45,1);
+        sfx.chop();FX.burst(best.at,cy,it.juice,7);FX.pop(best.acc>=1?'Perfect':best.acc>.8?'Good':'OK',best.at,cy-hh-30,best.acc>=1?'#2F8F5B':INK);
         if(marks.every(m=>m.cut))this.finish()}
       else{sfx.thud();if(d.id!=='little'){misses++;FX.pop('Miss',x,cy-hh-30,'#EF4F3A')}}},
-    move(x){if(kn.t<=0)kn.x=x},up(){},
     finish(){this.done=true;const a=marks.reduce((t,m)=>t+(m.cut?m.acc:0),0)/marks.length;this.score=Math.round(clamp(a*100-misses*6,0,100))},
     timeout(){this.finish()},
-    update(dt){kn.t=Math.max(0,kn.t-dt);for(const m of marks)if(m.cut)m.t+=dt},
+    update(dt){kn.t=Math.max(0,kn.t-dt);hint=Math.max(0,hint-dt);for(const m of marks)if(m.cut)m.t+=dt},
     draw(g){
       board(g,22,cy-hh-48,356,hh*2+96);
       const cm=marks.filter(m=>m.cut).sort((a,b)=>a.at-b.at),cuts=cm.map(m=>m.at),b=[0,...cuts,W],n=cuts.length;
@@ -1027,7 +1035,8 @@ G.chop=(s,d)=>{
       for(const m of marks)if(!m.cut){g.beginPath();g.moveTo(m.x,cy-hh-14);g.lineTo(m.x,cy+hh+14);g.stroke()}
       g.setLineDash([]);
       const p=kn.t/.2,top=cy-hh-44,ty=top+Math.sin(Math.PI*(1-p))*(hh*1.45+44);
-      drawKnife(g,kn.x,kn.t>0?ty:top);
+      drawKnife(g,kn.x,kn.t>0?ty:sw&&kn.y!==null?clamp(kn.y,top,cy+hh+40):top);
+      const fm=marks.find(m=>!m.cut);if(fm&&!sw&&(hint>0||marks.every(m=>!m.cut))){const t=(T*1.4)%1,yy=cy-hh-10+t*(hh*2+20);g.globalAlpha=Math.sin(t*Math.PI)*.8;g.lineCap='round';g.beginPath();g.moveTo(fm.x+14,yy-30);g.lineTo(fm.x+14,yy);g.moveTo(fm.x+6,yy-9);g.lineTo(fm.x+14,yy);g.lineTo(fm.x+22,yy-9);g.lineWidth=5;g.strokeStyle=INK;g.stroke();g.lineCap='butt';g.globalAlpha=1}
     }};
 };
 
