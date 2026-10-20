@@ -207,6 +207,7 @@ img.maya{-webkit-user-drag:none;user-select:none}
 .pbtn{width:32px;height:32px;border-radius:50%;border:2.5px solid var(--ink);background:var(--paper);font-weight:900;font-size:18px;line-height:1;padding:0;box-shadow:0 3px 0 var(--ink)}
 .pbtn:active{transform:translateY(2px);box-shadow:0 1px 0 var(--ink)}
 .card.pick.on{background:#FFE7A0}
+.card.pick.off{cursor:default;background:#EEF1EC;box-shadow:0 2px 0 var(--ink)}.card.pick.off canvas{opacity:.35;filter:grayscale(1)}
 .card.pick:not(.on) canvas{opacity:.45;filter:grayscale(.7)}
 .card .onmenu{font-size:13px;font-weight:800;color:var(--basil)}
 .card:not(.on) .onmenu{color:var(--muted)}
@@ -310,6 +311,7 @@ img.maya{-webkit-user-drag:none;user-select:none}
     <h2 class="set-title carte-title" data-i18n="Edit menu">Edit menu</h2>
     <p class="carte-hint" data-i18n="Tap dishes to put them on the menu. Guests only order what is on it.">Tap dishes to put them on the menu.</p>
     <p class="carte-hint carte-sub" data-i18n="Cheaper dishes earn bigger tips, pricey ones smaller tips.">Cheaper dishes earn bigger tips.</p>
+    <p class="carte-hint carte-sub" data-i18n="Only dishes you have cooked in the kitchen can go on the menu.">Only dishes you have cooked in the kitchen can go on the menu.</p>
     <div class="carte-row"><button class="ghost" id="carteAll" type="button" data-i18n="Select all">Select all</button><p class="carte-warn" id="carteWarn" role="status" hidden></p></div>
     <div class="scroll"><div class="grid" id="carteGrid"></div></div>
   </section>
@@ -819,7 +821,12 @@ Paint right up to the crust: 98% has to be covered.|Mal bis an den Rand: 98% mü
 On the crust!|Auf dem Rand!|Sur la croûte !|¡En el borde!|涂到饼边上了！
 Drag each topping onto its circle. The closer to the middle, the more points.|Zieh jeden Belag auf seinen Kreis. Je näher an der Mitte, desto mehr Punkte.|Glisse chaque garniture sur son cercle. Plus c'est près du centre, plus tu gagnes de points.|Arrastra cada ingrediente a su círculo. Cuanto más cerca del centro, más puntos.|把每样配料拖到对应圆圈，越靠近中心分越高。
 Close|Knapp|Presque|Casi|差一点
-Way off|Weit daneben|Loin|Muy lejos|偏太多了`.split('\n').forEach(l=>{const p=l.split('|');I18N[p[0]]={de:p[1],fr:p[2],es:p[3],zh:p[4]}});
+Way off|Weit daneben|Loin|Muy lejos|偏太多了
+Not cooked yet|Noch nicht gekocht|Pas encore cuisiné|Aún no cocinado|还没做过
+Cook it in the kitchen first|Erst in der Küche kochen|Cuisine-le d'abord en cuisine|Cocínalo primero en la cocina|先在厨房做一次
+Only dishes you have cooked in the kitchen can go on the menu.|Nur Gerichte, die du schon in der Küche gekocht hast, kommen auf die Karte.|Seuls les plats que tu as déjà cuisinés peuvent aller à la carte.|Solo los platos que ya cocinaste pueden ir en la carta.|只有在厨房做过的菜才能上菜单。
+Cook a dish in the kitchen first – then guests can order it.|Koche zuerst ein Gericht in der Küche – dann können Gäste es bestellen.|Cuisine d'abord un plat en cuisine, ensuite les clients pourront le commander.|Cocina primero un plato en la cocina; después los clientes podrán pedirlo.|先在厨房做一道菜，客人才能点它。
+To the kitchen|Zur Küche|Vers la cuisine|A la cocina|去厨房`.split('\n').forEach(l=>{const p=l.split('|');I18N[p[0]]={de:p[1],fr:p[2],es:p[3],zh:p[4]}});
 let LANG='de',LANG_SET=false;try{const l=localStorage.getItem('pip-lang');if(l){LANG=l;LANG_SET=true}}catch(e){}
 function tr(k,v){let o=LANG!=='en'&&I18N[k]&&I18N[k][LANG]||k;if(v)for(const n in v)o=o.split('{'+n+'}').join(v[n]);return o}
 
@@ -2139,7 +2146,9 @@ const pick=a=>a[Math.floor(Math.random()*a.length)];
 const B={on:false,day:1,coins:0,seats:[null,null,null],toSpawn:0,spawnT:0,total:0,served:0,lost:0,earned:0,qual:[],msg:'',msgT:0,dirty:false};
 B.menu=null;B.prices={};try{const sv=JSON.parse(localStorage.getItem('pip-bistro-v1')||'{}')||{};B.day=sv.day||1;B.coins=sv.coins||0;B.menu=Array.isArray(sv.menu)?sv.menu:null;B.prices=sv.prices&&typeof sv.prices==='object'?sv.prices:{};if(!sv.cents){B.coins=(B.coins||0)*100;B.prices={}}}catch(e){}
 const saveB=()=>{try{localStorage.setItem('pip-bistro-v1',JSON.stringify({cents:1,day:B.day,coins:B.coins,menu:B.menu,prices:B.prices}))}catch(e){}};
-const menuable=()=>RECIPES.filter(r=>unlocked(r)&&!r.custom);
+const cooked=r=>DEBUG||recipeStars(r.id)>0;
+const menuable=()=>RECIPES.filter(r=>unlocked(r)&&!r.custom&&cooked(r));
+const uncookedList=()=>RECIPES.filter(r=>unlocked(r)&&!r.custom&&!cooked(r));
 const onMenu=r=>!B.menu||B.menu.includes(r.id);
 const menuPool=()=>{const m=menuable().filter(onMenu);return m.length?m:menuable()};
 /* bistro orders use the full recipe, so every ingredient gets prepared */
@@ -2173,10 +2182,10 @@ function sayOf(c){const d=tr(c.r.name);switch(c.state){
   case'eat':return tr({happy:'Delicious! Thank you!',ok:'That was nice.',sad:'Hmm, it was okay.'}[c.eatMood]);
   default:return tr('I waited too long. Goodbye!')}}
 const GUESTS=['Finn','Amara','Kai','Sofia','Malik','Elif','Nora','Ravi','Rosa','Joe','Lotte','Hiroshi','Lukas','Aisha','Mei','Jayden','Ella','Leon','Zuri','Ren','Mateo','Priya','Marta','Nia','Arjun','Harpreet','Lucía','Karl','Grace','Daniel','Clara','Ruth'];
-function newCustomer(){const pool=menuPool(),NG=GUESTS.length,gi=Math.floor(Math.random()*NG),used=new Set(B.seats.filter(Boolean).map(x=>x.gi));let g2=gi;for(let t=0;t<NG&&used.has(g2);t++)g2=(g2+1)%NG;return{gi:g2,name:GUESTS[g2],skin:pick(SKINS),hair:Math.floor(Math.random()*6),hairC:pick(HAIRC),shirt:pick(SHIRTS),seed:Math.floor(Math.random()*99),r:pick(pool),state:'order',pat:1,pMax:patMax(),t:0,mk:''}}
+function newCustomer(){const pool=menuPool();if(!pool.length)return null;const NG=GUESTS.length,gi=Math.floor(Math.random()*NG),used=new Set(B.seats.filter(Boolean).map(x=>x.gi));let g2=gi;for(let t=0;t<NG&&used.has(g2);t++)g2=(g2+1)%NG;return{gi:g2,name:GUESTS[g2],skin:pick(SKINS),hair:Math.floor(Math.random()*6),hairC:pick(HAIRC),shirt:pick(SHIRTS),seed:Math.floor(Math.random()*99),r:pick(pool),state:'order',pat:1,pMax:patMax(),t:0,mk:''}}
 function tickBistro(dt){if(!B.on)return;
   B.spawnT-=dt;const free=B.seats.indexOf(null);
-  if(B.toSpawn>0&&free>=0&&B.spawnT<=0){B.seats[free]=newCustomer();B.toSpawn--;B.spawnT=Math.max(5,13-B.day);B.dirty=true;sfx.bell()}
+  if(B.toSpawn>0&&free>=0&&B.spawnT<=0){const nc=newCustomer();if(!nc){B.toSpawn=0;return}B.seats[free]=nc;B.toSpawn--;B.spawnT=Math.max(5,13-B.day);B.dirty=true;sfx.bell()}
   B.seats.forEach((c,i)=>{if(!c)return;
     if(c.state==='order'||c.state==='wait'||c.state==='cooking'){const rate=c.state==='order'?.6:c.state==='cooking'?.5:1,floor=diff.id==='little'?.25:c.state==='cooking'?.08:0;c.pat=Math.max(floor,c.pat-dt*rate/c.pMax);
       if(c.pat<=0&&floor===0){c.state='leave';c.t=1.8;B.lost++;B.msg=tr('{n} waited too long and left.',{n:c.name});B.msgT=3;sfx.bad()}}
@@ -2211,15 +2220,16 @@ function svcUI(){const c=E.service;if(!c)return;const w=B.seats.filter(x=>x&&(x.
   $('#svcText').textContent=tr('For {n}',{n:c.name})+(w?' · '+tr('{n} waiting',{n:w}):'');$('#svcFill').style.transform=`scaleX(${c.pat})`;$('#svcFill').parentNode.className='pat'+(c.pat<.3?' low':c.pat<.6?' mid':'')}
 function bisOverlay(kind,info){const card=$('#bisCard');$('#bisOverlay').hidden=false;
   card.innerHTML=kind==='start'
-    ?`<div class="pip-sm">${mayaHTML('plate')}</div><p class="stepno">${esc(restaurantName())}</p><h3>${tr('Day {n}',{n:B.day})}</h3><p class="hint">${tr('{n} guests are coming. Take each order, cook the dish, and serve it before they run out of patience.',{n:guestsFor(B.day)})}</p><p class="hint" style="font-weight:800">${tr('{n} dishes on the menu',{n:menuPool().length})}</p><button class="btn" id="bisGo" type="button">${tr('Open the doors')}</button><button class="ghost" id="bisEdit" type="button">${tr('Edit menu')}</button>`
+    ?`<div class="pip-sm">${mayaHTML('plate')}</div><p class="stepno">${esc(restaurantName())}</p><h3>${tr('Day {n}',{n:B.day})}</h3><p class="hint">${tr('{n} guests are coming. Take each order, cook the dish, and serve it before they run out of patience.',{n:guestsFor(B.day)})}</p>${menuPool().length?`<p class="hint" style="font-weight:800">${tr('{n} dishes on the menu',{n:menuPool().length})}</p><button class="btn" id="bisGo" type="button">${tr('Open the doors')}</button><button class="ghost" id="bisEdit" type="button">${tr('Edit menu')}</button>`:`<p class="hint" style="font-weight:800;color:var(--tomato)">${tr('Cook a dish in the kitchen first – then guests can order it.')}</p><button class="btn" id="bisKitchen" type="button">${tr('To the kitchen')}</button>`}`
     :`<div class="pip-sm">${mayaHTML(info.st>=2?'cheer':'think')}</div><p class="stepno">${tr('Day {n} closed',{n:info.day})}</p><div class="big-stars">${[0,1,2].map(i=>`<span class="${i<info.st?'star':'off'}" style="animation-delay:${.1+i*.18}s">★</span>`).join('')}</div><p class="hint">${tr('Served {a} of {b} guests',{a:info.served,b:info.total})}${info.lost?tr(', {n} left early',{n:info.lost}):''}. ${tr('You earned {n}.',{n:money(info.earned)})}</p><button class="btn" id="bisGo" type="button">${tr('Start day {n}',{n:B.day})}</button>`;
-  $('#bisGo').onclick=()=>{ac();sfx.tap();startDay()};const be=$('#bisEdit');if(be)be.onclick=()=>{sfx.tap();openCarte()}}
+  const bg=$('#bisGo');if(bg)bg.onclick=()=>{ac();sfx.tap();startDay()};const be=$('#bisEdit');if(be)be.onclick=()=>{sfx.tap();openCarte()};const bk=$('#bisKitchen');if(bk)bk.onclick=()=>{sfx.tap();$('#bisOverlay').hidden=true;renderMenu();show('menu')}}
 function renderCarte(){const all=menuable(),grid=$('#carteGrid');grid.innerHTML='';
   all.forEach(r=>{const on=onMenu(r),pr=priceOf(r),pb=priceBase(r),b=document.createElement('div');b.className='card pick'+(on?' on':'');b.setAttribute('role','button');b.tabIndex=0;b.setAttribute('aria-pressed',on);
     b.innerHTML=`<canvas></canvas><span class="cname">${tr(r.name)}</span><span class="cmeta">${tr('{n} steps',{n:svcSteps(r).length})}${pr!==pb?' · '+tr('Standard {n}',{n:money(pb)}):''}</span><span class="pricer"><button class="pbtn" type="button" data-d="-1" aria-label="${tr('Lower price')}">−</button><b>${money(pr)}</b><button class="pbtn" type="button" data-d="1" aria-label="${tr('Raise price')}">+</button></span><span class="onmenu">${tr(on?'On the menu':'Not on the menu')}</span><span class="tick">${on?'✓':''}</span>`;
     paintThumb(b.querySelector('canvas'),r.id,76);
     b.onclick=e=>{const pbn=e.target.closest&&e.target.closest('.pbtn');if(pbn){e.stopPropagation();setPrice(r,priceOf(r)+ +pbn.dataset.d*50);return}toggleCarte(r)};
     b.onkeydown=e=>{if((e.key==='Enter'||e.key===' ')&&e.target===b){e.preventDefault();toggleCarte(r)}};grid.appendChild(b)});
+  uncookedList().forEach(r=>{const b=document.createElement('div');b.className='card pick off';b.setAttribute('aria-disabled','true');b.innerHTML=`<canvas></canvas><span class="cname">${tr(r.name)}</span><span class="cmeta">${tr('Not cooked yet')}</span><span class="lock">${tr('Cook it in the kitchen first')}</span>`;paintThumb(b.querySelector('canvas'),r.id,76);grid.appendChild(b)});
   $('#carteCount').textContent=tr('{n} dishes on the menu',{n:all.filter(onMenu).length})}
 function setPrice(r,v){v=clamp(Math.round(v/50)*50,50,3000);if(v===priceBase(r))delete B.prices[r.id];else B.prices[r.id]=v;saveB();sfx.coin();renderCarte()}
 function toggleCarte(r){const all=menuable();if(!B.menu)B.menu=all.map(x=>x.id);const i=B.menu.indexOf(r.id),cnt=all.filter(onMenu).length;
