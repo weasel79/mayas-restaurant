@@ -214,6 +214,12 @@ img.maya{-webkit-user-drag:none;user-select:none}
 .card .tick{position:absolute;top:8px;right:10px;width:26px;height:26px;border-radius:50%;border:2.5px solid var(--ink);background:var(--paper);display:grid;place-items:center;font-weight:900;font-size:15px;line-height:1}
 .card.on .tick{background:var(--basil);color:#fff}
 .ready-card .ghost{margin-top:4px}
+.modal{position:fixed;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;background:rgba(59,34,24,.42);padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.unlock-card{width:min(440px,100%);max-height:100%;overflow-y:auto}
+.unlock-list{display:flex;flex-direction:column;gap:10px;width:100%}
+.unlock-list .card{width:100%}
+.pick-banner{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:#FFE7A0;border:3px solid var(--ink);border-radius:18px;padding:10px 14px;box-shadow:0 5px 0 var(--ink);font-weight:800}
+.card .lockhint{font-size:12px;font-weight:700;color:var(--muted)}
 .bistro-body .store{width:110px;height:auto;align-self:flex-start;margin-bottom:2px}
 .big-stars img{width:58px;height:auto;display:inline-block;animation:popin .45s cubic-bezier(.3,1.6,.5,1) backwards;margin:0 3px}
 .lock img{width:16px;height:auto;vertical-align:-3px;margin-right:4px}
@@ -315,6 +321,15 @@ img.maya{-webkit-user-drag:none;user-select:none}
     <div class="carte-row"><button class="ghost" id="carteAll" type="button" data-i18n="Select all">Select all</button><p class="carte-warn" id="carteWarn" role="status" hidden></p></div>
     <div class="scroll"><div class="grid" id="carteGrid"></div></div>
   </section>
+
+  <div class="modal" id="unlockModal" hidden><div class="ready-card unlock-card">
+    <div class="pip-sm" data-pip="cheer"></div>
+    <h3 data-i18n="Choose your next recipe">Choose your next recipe</h3>
+    <p class="hint" data-i18n="You cooked a new dish! Pick one recipe to unlock.">You cooked a new dish! Pick one recipe to unlock.</p>
+    <div class="unlock-list" id="unlockList"></div>
+    <p class="unlock" id="unlockMsg" hidden></p>
+    <button class="ghost" id="unlockLater" type="button" data-i18n="Later">Later</button>
+  </div></div>
 
   <section id="done" class="screen scroll" hidden>
     <div class="result">
@@ -826,7 +841,15 @@ Not cooked yet|Noch nicht gekocht|Pas encore cuisiné|Aún no cocinado|还没做
 Cook it in the kitchen first|Erst in der Küche kochen|Cuisine-le d'abord en cuisine|Cocínalo primero en la cocina|先在厨房做一次
 Only dishes you have cooked in the kitchen can go on the menu.|Nur Gerichte, die du schon in der Küche gekocht hast, kommen auf die Karte.|Seuls les plats que tu as déjà cuisinés peuvent aller à la carte.|Solo los platos que ya cocinaste pueden ir en la carta.|只有在厨房做过的菜才能上菜单。
 Cook a dish in the kitchen first – then guests can order it.|Koche zuerst ein Gericht in der Küche – dann können Gäste es bestellen.|Cuisine d'abord un plat en cuisine, ensuite les clients pourront le commander.|Cocina primero un plato en la cocina; después los clientes podrán pedirlo.|先在厨房做一道菜，客人才能点它。
-To the kitchen|Zur Küche|Vers la cuisine|A la cocina|去厨房`.split('\n').forEach(l=>{const p=l.split('|');I18N[p[0]]={de:p[1],fr:p[2],es:p[3],zh:p[4]}});
+To the kitchen|Zur Küche|Vers la cuisine|A la cocina|去厨房
+Choose your next recipe|Wähle dein nächstes Rezept|Choisis ta prochaine recette|Elige tu próxima receta|选择下一个菜谱
+You cooked a new dish! Pick one recipe to unlock.|Du hast ein neues Gericht gekocht! Such dir ein Rezept zum Freischalten aus.|Tu as cuisiné un nouveau plat ! Choisis une recette à débloquer.|¡Cocinaste un plato nuevo! Elige una receta para desbloquear.|你做了一道新菜！选一个菜谱解锁。
+Unlocked: {n}|Freigeschaltet: {n}|Débloqué : {n}|Desbloqueado: {n}|已解锁：{n}
+Locked|Gesperrt|Verrouillé|Bloqueado|未解锁
+Pick a new recipe|Neues Rezept wählen|Choisir une nouvelle recette|Elegir una receta nueva|选择新菜谱
+Cook a dish for the first time to unlock a new recipe.|Koche ein Gericht zum ersten Mal, um ein neues Rezept freizuschalten.|Cuisine un plat pour la première fois pour débloquer une recette.|Cocina un plato por primera vez para desbloquear una receta.|第一次做出一道菜即可解锁新菜谱。
+All recipes unlocked!|Alle Rezepte freigeschaltet!|Toutes les recettes sont débloquées !|¡Todas las recetas desbloqueadas!|所有菜谱都已解锁！
+Later|Später|Plus tard|Más tarde|稍后`.split('\n').forEach(l=>{const p=l.split('|');I18N[p[0]]={de:p[1],fr:p[2],es:p[3],zh:p[4]}});
 let LANG='de',LANG_SET=false;try{const l=localStorage.getItem('pip-lang');if(l){LANG=l;LANG_SET=true}}catch(e){}
 function tr(k,v){let o=LANG!=='en'&&I18N[k]&&I18N[k][LANG]||k;if(v)for(const n in v)o=o.split('{'+n+'}').join(v[n]);return o}
 
@@ -2060,11 +2083,25 @@ const recipeStars=id=>Math.max(best(id,'little'),best(id,'home'),best(id,'head')
 const totalStars=()=>RECIPES.reduce((s,r)=>s+recipeStars(r.id),0);
 const stepsFor=r=>r.steps.filter(s=>!s.pro||diff.id==='head');
 let DEBUG=false;try{DEBUG=localStorage.getItem('pip-debug')==='1'}catch(e){}
-const unlocked=r=>DEBUG||r.unlock<=totalStars(),bistroOpen=()=>DEBUG||totalStars()>=BISTRO_AT;
+/* recipes unlock one at a time: finishing a dish for the first time earns one pick out of three */
+const UNL_KEY='pip-unlocks';let UNL=null;try{UNL=JSON.parse(localStorage.getItem(UNL_KEY)||'null')}catch(e){}
+const starterIds=()=>RECIPES.filter(r=>r.unlock===0).map(r=>r.id);
+if(!UNL||!Array.isArray(UNL.list)){const ts=totalStars();UNL={list:ts>0?RECIPES.filter(r=>r.unlock<=ts).map(r=>r.id):starterIds(),pending:0,offer:null}}
+const saveUnl=()=>{try{localStorage.setItem(UNL_KEY,JSON.stringify(UNL))}catch(e){}};saveUnl();
+const resetUnl=()=>{UNL={list:starterIds(),pending:0,offer:null};saveUnl()};
+const unlocked=r=>DEBUG||UNL.list.includes(r.id),bistroOpen=()=>DEBUG||totalStars()>=BISTRO_AT;
+const lockedLeft=()=>RECIPES.filter(r=>!UNL.list.includes(r.id)).sort((a,b)=>(a.last?1e9:a.unlock)-(b.last?1e9:b.unlock));
+function unlockOffer(){if(!UNL.offer||!UNL.offer.every(id=>!UNL.list.includes(id))||!UNL.offer.length){UNL.offer=lockedLeft().slice(0,3).map(r=>r.id);saveUnl()}return UNL.offer.map(id=>RECIPES.find(r=>r.id===id)).filter(Boolean)}
+function openUnlock(){const offer=unlockOffer();if(!UNL.pending||!offer.length){UNL.pending=0;saveUnl();return}const m=$('#unlockModal'),box=$('#unlockList');box.innerHTML='';
+  offer.forEach(r=>{const st=stepsFor(r),tags=[...new Set(st.map(tagOf))],b=document.createElement('button');b.type='button';b.className='card';
+    b.innerHTML=`<canvas></canvas><span class="cname">${tr(r.name)}</span><span class="cmeta">${tr('{n} steps',{n:st.length})} · ${tags.map(x=>tr(x)).join(' · ')}</span><span class="cmeta">${money(priceBase(r))}</span>`;
+    paintThumb(b.querySelector('canvas'),r.id,76);b.onclick=()=>{UNL.list.push(r.id);UNL.pending=Math.max(0,UNL.pending-1);UNL.offer=null;saveUnl();sfx.perfect();FX.pop&&0;
+      $('#unlockMsg').textContent=tr('Unlocked: {n}',{n:tr(r.name)});$('#unlockMsg').hidden=false;setTimeout(()=>{if(UNL.pending>0)openUnlock();else{m.hidden=true;$('#unlockMsg').hidden=true}if(!$('#menu').hidden)renderMenu()},900)};box.appendChild(b)});
+  $('#unlockMsg').hidden=true;m.hidden=false}
 const tagOf=s=>s.g==='stir'?(s.style==='spread'?'spread':s.whisk?'whisk':'stir'):s.g==='heat'?({pan:'fry',oven:'bake',pot:'boil'}[s.mode]):s.g==='toppings'?'top':s.g;
 const starsHTML=n=>[0,1,2].map(i=>`<span class="${i<n?'star':'off'}">★</span>`).join('');
 
-function show(id){$('#gear').hidden=id==='settings';['start','menu','cook','done','bistro','settings','carte'].forEach(s=>$('#'+s).hidden=s!==id);setMusic(id==='bistro'||id==='carte'||(id==='cook'&&E.service)?'bistro':'kitchen');if(id!=='cook')stopLoop();if(id!=='bistro')stopBis()}
+function show(id){$('#gear').hidden=id==='settings';if(id!=='done'&&id!=='menu')$('#unlockModal').hidden=true;['start','menu','cook','done','bistro','settings','carte'].forEach(s=>$('#'+s).hidden=s!==id);setMusic(id==='bistro'||id==='carte'||(id==='cook'&&E.service)?'bistro':'kitchen');if(id!=='cook')stopLoop();if(id!=='bistro')stopBis()}
 /* profile: restaurant name + difficulty, chosen when starting a new game */
 const PROFILE_KEY='pip-profile';let PROFILE=null;try{PROFILE=JSON.parse(localStorage.getItem(PROFILE_KEY)||'null')}catch(e){}
 if(PROFILE&&LV[PROFILE.level])diff=LV[PROFILE.level];
@@ -2084,12 +2121,15 @@ function renderHome(){$('#startName').textContent=restaurantName();const g=hasGa
 function renderMenu(){
   const tot=totalStars();$('#levelChip').textContent=tr(diff.name);$('#menuStars').innerHTML=`<span class="star">★</span> ${tot}`;
   const grid=$('#grid');grid.innerHTML='';
-  RECIPES.forEach(r=>{const locked=!unlocked(r),st=stepsFor(r),tags=[...new Set(st.map(tagOf))];
+  if(!DEBUG&&UNL.pending>0&&lockedLeft().length){const bn=document.createElement('div');bn.className='pick-banner';bn.innerHTML=`<span>${tr('You cooked a new dish! Pick one recipe to unlock.')}</span><button class="btn small" type="button">${tr('Pick a new recipe')}</button>`;bn.querySelector('button').onclick=()=>{sfx.tap();openUnlock()};grid.appendChild(bn)}
+  const order=[...RECIPES].sort((a,b)=>(unlocked(b)?1:0)-(unlocked(a)?1:0));
+  order.forEach(r=>{const locked=!unlocked(r),st=stepsFor(r),tags=[...new Set(st.map(tagOf))];
     const b=document.createElement('button');b.type='button';b.className='card';b.disabled=locked;
-    b.innerHTML=`<canvas></canvas><span class="cname">${tr(r.name)}</span><span class="cmeta">${tr('{n} steps',{n:st.length})} · ${tags.map(x=>tr(x)).join(' · ')}</span>${locked?`<span class="lock"><img src="sprites/ui-lock.webp" alt="">${tr('Unlocks at {n} ★',{n:r.unlock})}</span>`:`<span class="cstars">${starsHTML(best(r.id,diff.id))}</span>`}`;
+    b.innerHTML=`<canvas></canvas><span class="cname">${tr(r.name)}</span><span class="cmeta">${tr('{n} steps',{n:st.length})} · ${tags.map(x=>tr(x)).join(' · ')}</span>${locked?`<span class="lock"><img src="sprites/ui-lock.webp" alt="">${tr('Locked')}</span>`:`<span class="cstars">${starsHTML(best(r.id,diff.id))}</span>`}`;
     paintThumb(b.querySelector('canvas'),r.id,76);b.addEventListener('click',()=>{ac();sfx.tap();startRecipe(r)});grid.appendChild(b)});
   const bi=document.createElement('div');bi.className='bistro';const open=bistroOpen();
   bi.innerHTML=`<div class="awning"></div><div class="bistro-body"><img class="store" src="sprites/bis-store.webp" alt=""><h3>${esc(restaurantName())}</h3><p>${tr('Guests come in, order from your recipes and wait while you cook. Serve them quickly and well for bigger tips.')}</p>${open?`<small>${tr('Day {n}',{n:B.day})} · ${tr('{n} earned so far',{n:money(B.coins)})}</small><button class="btn" id="openBistro" type="button">${tr(B.on?'Back to service':'Open the bistro')}</button>`:`<div class="meter"><i style="width:${Math.min(100,tot/BISTRO_AT*100)}%"></i></div><small>${tr('{a} of {b} ★ to open the doors',{a:tot,b:BISTRO_AT})}</small>`}</div>`;
+  if(!DEBUG&&!UNL.pending&&lockedLeft().length){const h=document.createElement('p');h.className='lockhint';h.style.gridColumn='1/-1';h.style.margin='0';h.textContent=tr('Cook a dish for the first time to unlock a new recipe.');grid.insertBefore(h,grid.querySelector('.card[disabled]'))}
   grid.appendChild(bi);if(open)bi.querySelector('#openBistro').onclick=()=>{ac();sfx.tap();openBistro()}}
 
 /* ============ cooking engine ============ */
@@ -2122,13 +2162,15 @@ function draw(){g.clearRect(0,0,W,H);counter(g);E.g.draw(g);FX.draw(g);
 function finishRecipe(){E.state='idle';
   const SC=E.scores.filter(x=>x!==null);
   if(E.service){const c=E.service;E.service=null;serveCustomer(c,Math.round(SC.reduce((a,b)=>a+b,0)/SC.length));return}
-  const avg=Math.round(SC.reduce((a,b)=>a+b,0)/SC.length),st=avg>=85?3:avg>=65?2:1,before=totalStars(),prev=best(E.r.id,diff.id);
+  const avg=Math.round(SC.reduce((a,b)=>a+b,0)/SC.length),st=avg>=85?3:avg>=65?2:1,before=totalStars(),prev=best(E.r.id,diff.id),firstTime=recipeStars(E.r.id)===0;
+  if(firstTime&&!DEBUG&&lockedLeft().length){UNL.pending++;saveUnl()}
   if(st>prev){prog[E.r.id]=prog[E.r.id]||{};prog[E.r.id][diff.id]=st;save()}
-  const after=totalStars(),newly=RECIPES.filter(r=>r.unlock>before&&r.unlock<=after);
+  const after=totalStars();
   show('done');paintThumb($('#dishCv'),E.r.id,190);$('#resName').textContent=tr(E.r.name);
   $('#resStars').innerHTML=[0,1,2].map(i=>spr('ui-star')?`<img src="sprites/ui-${i<st?'star':'starempty'}.webp" alt="${i<st?'★':'☆'}" style="animation-delay:${.15+i*.18}s">`:`<span class="${i<st?'star':'off'}" style="animation-delay:${.15+i*.18}s">★</span>`).join('');for(let i=0;i<st;i++)sfx.star(i);
   $('#resLine').textContent=tr('{n} points',{n:avg})+' · '+tr(diff.name)+(st>prev&&prev>0?' · '+tr('New best!'):'');
-  const u=$('#resUnlock');u.hidden=!newly.length&&!(before<BISTRO_AT&&after>=BISTRO_AT);u.textContent=newly.length?tr('New recipe unlocked: {n}',{n:newly.map(r=>tr(r.name)).join(', ')}):tr("You've earned enough stars for Maya's Bistro!");
+  const u=$('#resUnlock');u.hidden=!(before<BISTRO_AT&&after>=BISTRO_AT);u.textContent=tr("You've earned enough stars for Maya's Bistro!");
+  if(UNL.pending>0&&!DEBUG)setTimeout(()=>{if(!$('#done').hidden)openUnlock()},1300);
   $('#resSteps').innerHTML=E.steps.map((s,i)=>E.scores[i]===null?'':`<li><span>${tr(s.t)}</span><b>${grade(E.scores[i])}${diff.id==='little'?'':' '+E.scores[i]}</b></li>`).join('')}
 
 function pt(e){const r=cv.getBoundingClientRect();return{x:(e.clientX-r.left)/r.width*W,y:(e.clientY-r.top)/r.height*H}}
@@ -2272,20 +2314,22 @@ $('#dbgTgl').onclick=()=>{DEBUG=!DEBUG;try{localStorage.setItem('pip-debug',DEBU
 function resetRun(){B.on=false;B.seats=[null,null,null];B.toSpawn=0;E.service=null;E.state='idle'}
 $('#contBtn').onclick=()=>{ac();sfx.perfect();renderMenu();show('menu')};
 $('#loadBtn').onclick=()=>{const sv=readSave();if(!sv)return;ac();resetRun();prog=JSON.parse(JSON.stringify(sv.prog||{}));save();
+  if(sv.unlocks&&Array.isArray(sv.unlocks.list))UNL=JSON.parse(JSON.stringify(sv.unlocks));else{const ts=totalStars();UNL={list:ts>0?RECIPES.filter(r=>r.unlock<=ts).map(r=>r.id):starterIds(),pending:0,offer:null}}saveUnl();
   const bs=sv.bistro||{};B.day=bs.day||1;B.coins=bs.cents?(bs.coins||0):(bs.coins||0)*100;B.menu=Array.isArray(bs.menu)?bs.menu:null;B.prices=bs.cents&&bs.prices||{};saveB();
   if(LV[sv.level])diff=LV[sv.level];PROFILE={name:sv.profile&&sv.profile.name||'',level:diff.id};saveProfile();sfx.perfect();renderMenu();show('menu')};
 function saveInfoUI(){const sv=readSave();$('#saveInfo').textContent=sv?tr('Saved: {d}',{d:saveSummary(sv)}):tr('No saved game yet.')}
 function flash(msg){const m=$('#saveMsg');m.textContent=msg;m.hidden=false;clearTimeout(flash.t);flash.t=setTimeout(()=>{m.hidden=true},2600)}
-$('#saveBtn').onclick=()=>{ac();try{localStorage.setItem(SAVE_KEY,JSON.stringify({v:2,t:Date.now(),level:diff.id,profile:{name:PROFILE&&PROFILE.name||''},prog,bistro:{cents:1,day:B.day,coins:B.coins,menu:B.menu,prices:B.prices}}));sfx.good();flash(tr('Game saved!'))}catch(e){sfx.bad();flash(tr('Could not save in this browser.'))}saveInfoUI()};
+$('#saveBtn').onclick=()=>{ac();try{localStorage.setItem(SAVE_KEY,JSON.stringify({v:2,t:Date.now(),level:diff.id,profile:{name:PROFILE&&PROFILE.name||''},prog,unlocks:UNL,bistro:{cents:1,day:B.day,coins:B.coins,menu:B.menu,prices:B.prices}}));sfx.good();flash(tr('Game saved!'))}catch(e){sfx.bad();flash(tr('Could not save in this browser.'))}saveInfoUI()};
 $('#newBtn').onclick=()=>{ac();sfx.tap();$('#startBtns').hidden=true;$('#newForm').hidden=false;$('#newName').value='';$('#newName').placeholder=tr("Maya's Restaurant");NEWLV=diff.id;newLvUI();$('#newWarn').hidden=!hasGame();$('#newWarn').textContent=tr('This replaces your current game.');try{$('#newName').focus({preventScroll:true})}catch(e){}};
 $('#newCancel').onclick=()=>{sfx.tap();$('#newForm').hidden=true;$('#startBtns').hidden=false};
-$('#newForm').addEventListener('submit',e=>{e.preventDefault();ac();resetRun();prog={};save();B.day=1;B.coins=0;B.menu=null;B.prices={};saveB();
+$('#newForm').addEventListener('submit',e=>{e.preventDefault();ac();resetRun();prog={};save();resetUnl();B.day=1;B.coins=0;B.menu=null;B.prices={};saveB();
   diff=LV[NEWLV];PROFILE={name:($('#newName').value||'').trim().slice(0,24),level:NEWLV};saveProfile();
   $('#newForm').hidden=true;$('#startBtns').hidden=false;sfx.perfect();renderMenu();show('menu')});
 $('#musVol').oninput=e=>{MUSV=e.target.value/100;$('#musVal').textContent=e.target.value+'%';try{localStorage.setItem('pip-mus-vol',MUSV)}catch(_){}MUS.unlocked=true;musicUpdate()};
 $('#sfxVol').oninput=e=>{SFXV=e.target.value/100;$('#sfxVal').textContent=e.target.value+'%';try{localStorage.setItem('pip-sfx-vol',SFXV)}catch(_){}};
 $('#sfxVol').onchange=()=>{ac();sfx.good()};
 $('#musNext').onclick=()=>{sfx.tap();nextTrack()};
+$('#unlockLater').onclick=()=>{sfx.tap();$('#unlockModal').hidden=true;if(!$('#menu').hidden)renderMenu()};
 $('#bisBack').onclick=()=>{renderMenu();show('menu')};
 $('#bisMenu').onclick=()=>{sfx.tap();openCarte()};
 $('#carteBack').onclick=()=>{sfx.tap();backToBistro();if(!B.on)bisOverlay('start')};
